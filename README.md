@@ -46,4 +46,4 @@
 
    - To run python script inside jupyter notebook:
 
-     Make a notebook, and use `%run <name-of-script.py>` as an entry in a cell, and then execute it.
+     Open a "Console", and use `%run <name-of-script.py>` as an entry in a cell, and execute it.
