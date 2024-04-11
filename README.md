@@ -49,3 +49,7 @@
    - To run python script inside jupyter notebook:
 
      Open a "Console", and use `%run <name-of-script.py>` as an entry in a cell, and execute it.
+
+## Docs
+
+See [LibRecommender Docs](/docs/LibRecommender.md)
