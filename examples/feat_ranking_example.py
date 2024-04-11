@@ -1,18 +1,28 @@
 import time
 
 import pandas as pd
+import tensorflow as tf
 
-from examples.utils import reset_state
-from libreco.data import split_by_ratio_chrono, DatasetFeat
 from libreco.algorithms import (
-    FM,
-    WideDeep,
-    DeepFM,
-    AutoInt,
     DIN,
-    YouTubeRetrieval,
+    FM,
+    AutoInt,
+    DeepFM,
+    GraphSage,
+    GraphSageDGL,
+    PinSage,
+    PinSageDGL,
+    TwoTower,
+    WideDeep,
     YouTubeRanking,
+    YouTubeRetrieval,
 )
+from libreco.data import DatasetFeat, split_by_ratio_chrono
+
+
+def reset_state(name):
+    tf.compat.v1.reset_default_graph()
+    print("\n", "=" * 30, name, "=" * 30)
 
 
 if __name__ == "__main__":
@@ -31,13 +41,6 @@ if __name__ == "__main__":
     )
     eval_data = DatasetFeat.build_testset(eval_data)
     print(data_info)
-    # do negative sampling, assume the data only contains positive feedback
-    train_data.build_negative_samples(
-        data_info, item_gen_mode="random", num_neg=1, seed=2020
-    )
-    eval_data.build_negative_samples(
-        data_info, item_gen_mode="random", num_neg=1, seed=2222
-    )
 
     metrics = [
         "loss",
@@ -49,6 +52,156 @@ if __name__ == "__main__":
         "map",
         "ndcg",
     ]
+
+    reset_state("GraphSage")
+    graphsage = GraphSage(
+        "ranking",
+        data_info,
+        loss_type="max_margin",
+        paradigm="i2i",
+        embed_size=16,
+        n_epochs=2,
+        lr=3e-4,
+        lr_decay=False,
+        reg=None,
+        batch_size=2048,
+        num_neg=1,
+        dropout_rate=0.0,
+        num_layers=1,
+        num_neighbors=10,
+        num_walks=10,
+        sample_walk_len=5,
+        margin=1.0,
+        sampler="random",
+        start_node="random",
+        focus_start=False,
+        seed=42,
+    )
+    graphsage.fit(
+        train_data,
+        neg_sampling=True,
+        verbose=2,
+        shuffle=True,
+        eval_data=eval_data,
+        metrics=metrics,
+    )
+    print("prediction: ", graphsage.predict(user=1, item=2333))
+    print("recommendation: ", graphsage.recommend_user(user=1, n_rec=7))
+    print("batch recommendation: ", graphsage.recommend_user(user=[1, 2, 3], n_rec=7))
+
+    reset_state("GraphSageDGL")
+    graphsage_dgl = GraphSageDGL(
+        "ranking",
+        data_info,
+        loss_type="focal",
+        paradigm="u2i",
+        aggregator_type="gcn",
+        embed_size=16,
+        n_epochs=2,
+        lr=3e-4,
+        lr_decay=False,
+        reg=None,
+        batch_size=2048,
+        num_neg=1,
+        dropout_rate=0.0,
+        remove_edges=False,
+        num_layers=2,
+        num_neighbors=3,
+        num_walks=10,
+        sample_walk_len=5,
+        margin=1.0,
+        sampler="random",
+        start_node="random",
+        focus_start=False,
+        seed=42,
+    )
+    graphsage_dgl.fit(
+        train_data,
+        neg_sampling=True,
+        verbose=2,
+        shuffle=True,
+        eval_data=eval_data,
+        metrics=metrics,
+    )
+    print("prediction: ", graphsage_dgl.predict(user=1, item=2333))
+    print("recommendation: ", graphsage_dgl.recommend_user(user=1, n_rec=7))
+
+    reset_state("PinSage")
+    pinsage = PinSage(
+        "ranking",
+        data_info,
+        loss_type="cross_entropy",
+        paradigm="u2i",
+        embed_size=16,
+        n_epochs=2,
+        lr=3e-4,
+        lr_decay=False,
+        reg=None,
+        batch_size=2048,
+        num_neg=1,
+        dropout_rate=0.0,
+        remove_edges=False,
+        num_layers=1,
+        num_neighbors=10,
+        num_walks=10,
+        neighbor_walk_len=2,
+        sample_walk_len=5,
+        termination_prob=0.5,
+        margin=1.0,
+        sampler="random",
+        start_node="random",
+        focus_start=False,
+        seed=42,
+    )
+    pinsage.fit(
+        train_data,
+        neg_sampling=True,
+        verbose=2,
+        shuffle=True,
+        eval_data=eval_data,
+        metrics=metrics,
+    )
+    print("prediction: ", pinsage.predict(user=1, item=2333))
+    print("recommendation: ", pinsage.recommend_user(user=1, n_rec=7))
+    print("batch recommendation: ", pinsage.recommend_user(user=[1, 2, 3], n_rec=7))
+
+    reset_state("PinSageDGL")
+    pinsage_dgl = PinSageDGL(
+        "ranking",
+        data_info,
+        loss_type="max_margin",
+        paradigm="i2i",
+        embed_size=16,
+        n_epochs=2,
+        lr=3e-4,
+        lr_decay=False,
+        reg=None,
+        batch_size=2048,
+        num_neg=3,
+        dropout_rate=0.0,
+        remove_edges=False,
+        num_layers=2,
+        num_neighbors=3,
+        num_walks=10,
+        neighbor_walk_len=2,
+        sample_walk_len=5,
+        termination_prob=0.5,
+        margin=1.0,
+        sampler="random",
+        start_node="random",
+        focus_start=False,
+        seed=42,
+    )
+    pinsage_dgl.fit(
+        train_data,
+        neg_sampling=True,
+        verbose=2,
+        shuffle=True,
+        eval_data=eval_data,
+        metrics=metrics,
+    )
+    print("prediction: ", pinsage_dgl.predict(user=1, item=2333))
+    print("recommendation: ", pinsage_dgl.recommend_user(user=1, n_rec=7))
 
     reset_state("FM")
     fm = FM(
@@ -68,6 +221,7 @@ if __name__ == "__main__":
     )
     fm.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -90,11 +244,12 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
     )
     wd.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -117,11 +272,12 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
     )
     deepfm.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -130,6 +286,38 @@ if __name__ == "__main__":
     print("prediction: ", deepfm.predict(user=1, item=2333))
     print("recommendation: ", deepfm.recommend_user(user=1, n_rec=7))
 
+    reset_state("TwoTower")
+    two_tower = TwoTower(
+        "ranking",
+        data_info,
+        loss_type="softmax",
+        embed_size=16,
+        norm_embed=True,
+        n_epochs=2,
+        lr=1e-3,
+        lr_decay=False,
+        reg=None,
+        batch_size=2048,
+        num_neg=1,
+        use_bn=False,
+        dropout_rate=None,
+        hidden_units=(128, 64, 32),
+        use_correction=True,
+        temperature=0.1,
+        ssl_pattern=None,
+        tf_sess_config=None,
+    )
+    two_tower.fit(
+        train_data,
+        neg_sampling=True,
+        verbose=2,
+        shuffle=True,
+        eval_data=eval_data,
+        metrics=metrics,
+    )
+    print("prediction: ", two_tower.predict(user=1, item=2333))
+    print("recommendation: ", two_tower.recommend_user(user=1, n_rec=7))
+
     reset_state("AutoInt")
     autoint = AutoInt(
         "ranking",
@@ -137,8 +325,8 @@ if __name__ == "__main__":
         loss_type="cross_entropy",
         embed_size=16,
         n_epochs=2,
-        att_embed_size=(8, 8, 8),
-        num_heads=4,
+        att_embed_size=(4, 4),
+        num_heads=2,
         use_residual=False,
         lr=1e-3,
         lr_decay=False,
@@ -147,11 +335,11 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
         tf_sess_config=None,
     )
     autoint.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -175,12 +363,13 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
         use_tf_attention=True,
     )
     din.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -203,16 +392,15 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
     )
     ytb_ranking.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
-        recent_num=None,
-        sample_rate=None,
         metrics=metrics,
     )
     print("prediction: ", ytb_ranking.predict(user=1, item=2333))
@@ -235,18 +423,11 @@ if __name__ == "__main__":
     )
     eval_data = DatasetFeat.build_testset(eval_data)
 
-    train_data.build_negative_samples(
-        data_info, item_gen_mode="random", num_neg=1, seed=2020
-    )
-    eval_data.build_negative_samples(
-        data_info, item_gen_mode="random", num_neg=1, seed=2222
-    )
-
     ytb_retrieval = YouTubeRetrieval(
         "ranking",
         data_info,
         embed_size=16,
-        n_epochs=3,
+        n_epochs=2,
         lr=1e-4,
         lr_decay=False,
         reg=None,
@@ -255,12 +436,13 @@ if __name__ == "__main__":
         use_bn=False,
         dropout_rate=None,
         loss_type="sampled_softmax",
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         sampler="uniform",
         tf_sess_config=None,
     )
     ytb_retrieval.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,

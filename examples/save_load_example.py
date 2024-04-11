@@ -1,9 +1,8 @@
 import pandas as pd
 import tensorflow as tf
 
-from libreco.data import DatasetFeat, DataInfo
-from libreco.data import split_by_ratio_chrono
 from libreco.algorithms import DeepFM
+from libreco.data import DataInfo, DatasetFeat, split_by_ratio_chrono
 from libreco.evaluation import evaluate
 
 
@@ -20,12 +19,6 @@ if __name__ == "__main__":
     )
     test_data = DatasetFeat.build_testset(test, shuffle=False)
     print(data_info)
-    train_data.build_negative_samples(
-        data_info, num_neg=1, item_gen_mode="random", seed=2020
-    )
-    test_data.build_negative_samples(
-        data_info, num_neg=1, item_gen_mode="random", seed=2222
-    )
 
     deepfm = DeepFM(
         "ranking",
@@ -39,11 +32,12 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
     )
     deepfm.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=test_data,
@@ -59,7 +53,7 @@ if __name__ == "__main__":
         ],
         eval_batch_size=8192,
         k=10,
-        sample_user_num=2048,
+        eval_user_num=2048,
     )
 
     print("prediction: ", deepfm.predict(user=2211, item=110))
@@ -67,8 +61,8 @@ if __name__ == "__main__":
 
     # save data_info, specify model save folder
     data_info.save(path="model_path", model_name="deepfm_model")
-    # set manual=True will use numpy to save model
-    # set manual=False will use tf.train.Saver to save model
+    # set manual=True will use `numpy` to save model
+    # set manual=False will use `tf.train.Saver` to save model
     # set inference=True will only save the necessary variables for prediction and recommendation
     deepfm.save(
         path="model_path", model_name="deepfm_model", manual=True, inference_only=True
@@ -91,12 +85,11 @@ if __name__ == "__main__":
     eval_result = evaluate(
         model=model,
         data=test,
+        neg_sampling=True,
         eval_batch_size=8192,
         k=10,
         metrics=["roc_auc", "precision"],
         sample_user_num=2048,
-        neg_sample=True,
-        update_features=False,
         seed=2222,
     )
     print("eval result: ", eval_result)

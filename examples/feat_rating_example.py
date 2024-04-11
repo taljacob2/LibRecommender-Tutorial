@@ -1,10 +1,15 @@
 import time
 
 import pandas as pd
+import tensorflow as tf
 
-from examples.utils import reset_state
-from libreco.data import split_by_ratio_chrono, DatasetFeat
-from libreco.algorithms import FM, WideDeep, DeepFM, AutoInt, DIN
+from libreco.algorithms import DIN, FM, AutoInt, DeepFM, WideDeep
+from libreco.data import DatasetFeat, split_by_ratio_chrono
+
+
+def reset_state(name):
+    tf.compat.v1.reset_default_graph()
+    print("\n", "=" * 30, name, "=" * 30)
 
 
 if __name__ == "__main__":
@@ -43,6 +48,7 @@ if __name__ == "__main__":
     )
     fm.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -64,11 +70,12 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
     )
     wd.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -90,11 +97,12 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
     )
     deepfm.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -119,11 +127,11 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
         tf_sess_config=None,
     )
     autoint.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -146,12 +154,13 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
         use_tf_attention=True,
     )
     din.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,

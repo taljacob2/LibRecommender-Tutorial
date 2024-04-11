@@ -1,8 +1,7 @@
 import pandas as pd
 
-from libreco.data import split_by_ratio_chrono, DatasetFeat
 from libreco.algorithms import DeepFM
-
+from libreco.data import DatasetFeat, split_by_ratio_chrono
 
 if __name__ == "__main__":
     data = pd.read_csv("sample_data/sample_movielens_merged.csv", sep=",", header=0)
@@ -26,13 +25,6 @@ if __name__ == "__main__":
     )
     eval_data = DatasetFeat.build_testset(eval_data)
     print(data_info)
-    # do negative sampling, assume the data only contains positive feedback
-    train_data.build_negative_samples(
-        data_info, item_gen_mode="random", num_neg=1, seed=2020
-    )
-    eval_data.build_negative_samples(
-        data_info, item_gen_mode="random", num_neg=1, seed=2222
-    )
 
     deepfm = DeepFM(
         "ranking",
@@ -46,13 +38,14 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
         multi_sparse_combiner="sqrtn",  # specify multi_sparse combiner
     )
 
     deepfm.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,

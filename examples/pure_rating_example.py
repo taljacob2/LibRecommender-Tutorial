@@ -1,10 +1,15 @@
 import time
 
 import pandas as pd
+import tensorflow as tf
 
-from examples.utils import reset_state
-from libreco.data import split_by_ratio_chrono, DatasetPure
-from libreco.algorithms import SVD, SVDpp, NCF, ALS, UserCF, ItemCF, RNN4Rec
+from libreco.algorithms import ALS, NCF, SVD, ItemCF, RNN4Rec, SVDpp, UserCF
+from libreco.data import DatasetPure, split_by_ratio_chrono
+
+
+def reset_state(name):
+    tf.compat.v1.reset_default_graph()
+    print("\n", "=" * 30, name, "=" * 30)
 
 
 if __name__ == "__main__":
@@ -35,6 +40,7 @@ if __name__ == "__main__":
     )
     svd.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -55,6 +61,7 @@ if __name__ == "__main__":
     )
     svdpp.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -76,11 +83,12 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=True,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
     )
     ncf.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -97,8 +105,8 @@ if __name__ == "__main__":
         embed_size=16,
         n_epochs=2,
         lr=0.001,
-        lr_decay=None,
-        hidden_units="16,16",
+        lr_decay=False,
+        hidden_units=(16, 16),
         reg=None,
         batch_size=256,
         num_neg=1,
@@ -108,6 +116,7 @@ if __name__ == "__main__":
     )
     rnn.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
@@ -130,22 +139,29 @@ if __name__ == "__main__":
     )
     als.fit(
         train_data,
+        neg_sampling=False,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,
-        metrics=metrics
+        metrics=metrics,
     )
     print("prediction: ", als.predict(user=1, item=2333))
     print("recommendation: ", als.recommend_user(user=1, n_rec=7))
 
     reset_state("user_cf")
-    user_cf = UserCF(task="rating", data_info=data_info, k_sim=20, sim_type="cosine")
-    user_cf.fit(
-        train_data,
-        verbose=2,
+    user_cf = UserCF(
+        task="rating",
+        data_info=data_info,
+        k_sim=20,
+        sim_type="cosine",
         mode="invert",
         num_threads=4,
         min_common=1,
+    )
+    user_cf.fit(
+        train_data,
+        neg_sampling=False,
+        verbose=2,
         eval_data=eval_data,
         metrics=metrics,
     )
@@ -153,13 +169,19 @@ if __name__ == "__main__":
     print("recommendation: ", user_cf.recommend_user(user=1, n_rec=7))
 
     reset_state("item_cf")
-    item_cf = ItemCF(task="rating", data_info=data_info, k_sim=20, sim_type="pearson")
-    item_cf.fit(
-        train_data,
-        verbose=2,
+    item_cf = ItemCF(
+        task="rating",
+        data_info=data_info,
+        k_sim=20,
+        sim_type="pearson",
         mode="invert",
         num_threads=1,
         min_common=1,
+    )
+    item_cf.fit(
+        train_data,
+        neg_sampling=False,
+        verbose=2,
         eval_data=eval_data,
         metrics=metrics,
     )

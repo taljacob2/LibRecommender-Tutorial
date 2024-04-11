@@ -1,7 +1,7 @@
 import pandas as pd
 
-from libreco.data import split_by_ratio_chrono, split_multi_value, DatasetFeat
 from libreco.algorithms import DeepFM
+from libreco.data import DatasetFeat, split_by_ratio_chrono, split_multi_value
 
 pd.set_option("display.max_columns", 20)
 
@@ -18,12 +18,10 @@ if __name__ == "__main__":
     user_col = ["sex", "age", "occupation"]
     item_col = ["genre"]
 
-    # The "max_len" parameter means max category a sample can have.
-    # If it is set to None, will use max category length a sample can
-    # have across the whole data.
-    # Note if it is not None, it should also be a list,
-    # because there are possibly many multi_value features.
-    multi_sparse_col, multi_user_col, multi_item_col = split_multi_value(
+    # The "max_len" parameter means the maximum number of sub-features after transformation.
+    # If it is None, will use max category length a sample can have across the whole data.
+    # Note if not None, it should be a list, because there are possibly many `multi_value` features.
+    data, multi_sparse_col, multi_user_col, multi_item_col = split_multi_value(
         data,
         multi_value_col,
         sep="|",
@@ -60,13 +58,6 @@ if __name__ == "__main__":
     )
     eval_data = DatasetFeat.build_testset(eval_data)
     print(data_info)
-    # do negative sampling, assume the data only contains positive feedback
-    train_data.build_negative_samples(
-        data_info, item_gen_mode="random", num_neg=1, seed=2020
-    )
-    eval_data.build_negative_samples(
-        data_info, item_gen_mode="random", num_neg=1, seed=2222
-    )
 
     deepfm = DeepFM(
         "ranking",
@@ -81,12 +72,13 @@ if __name__ == "__main__":
         num_neg=1,
         use_bn=False,
         dropout_rate=None,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
         tf_sess_config=None,
         multi_sparse_combiner="normal",  # specify multi_sparse combiner
     )
     deepfm.fit(
         train_data,
+        neg_sampling=True,
         verbose=2,
         shuffle=True,
         eval_data=eval_data,

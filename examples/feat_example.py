@@ -1,13 +1,10 @@
 import pandas as pd
 
-from libreco.data import split_by_ratio_chrono, DatasetFeat
 from libreco.algorithms import YouTubeRanking
-
+from libreco.data import DatasetFeat, split_by_ratio_chrono
 
 if __name__ == "__main__":
     data = pd.read_csv("sample_data/sample_movielens_merged.csv", sep=",", header=0)
-    # convert to implicit data and do negative sampling afterwards
-    data["label"] = 1
 
     # split into train and test data based on time
     train_data, test_data = split_by_ratio_chrono(data, test_size=0.2)
@@ -22,11 +19,7 @@ if __name__ == "__main__":
         train_data, user_col, item_col, sparse_col, dense_col
     )
     test_data = DatasetFeat.build_testset(test_data)
-
-    # sample negative items for each record
-    train_data.build_negative_samples(data_info)
-    test_data.build_negative_samples(data_info)
-    print(data_info)  # n_users: 5962, n_items: 3226, data sparsity: 0.4185 %
+    print(data_info)  # n_users: 5953, n_items: 3209, data density: 0.4213 %
 
     ytb_ranking = YouTubeRanking(
         task="ranking",
@@ -36,19 +29,20 @@ if __name__ == "__main__":
         lr=1e-4,
         batch_size=512,
         use_bn=True,
-        hidden_units="128,64,32",
+        hidden_units=(128, 64, 32),
     )
     ytb_ranking.fit(
         train_data,
+        neg_sampling=True,  # sample negative items train and eval data
         verbose=2,
         shuffle=True,
         eval_data=test_data,
         metrics=["loss", "roc_auc", "precision", "recall", "map", "ndcg"],
     )
 
-    # predict preference of user 1 to item 2333
+    # predict preference of user 2211 to item 110
     print("prediction: ", ytb_ranking.predict(user=2211, item=110))
-    # recommend 7 items for user 1
+    # recommend 7 items for user 2211
     print("recommendation: ", ytb_ranking.recommend_user(user=2211, n_rec=7))
 
     # cold-start prediction
