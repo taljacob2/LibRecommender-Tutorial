@@ -18,8 +18,8 @@
 1. Create a virtual environment
 
    ```
-   conda create -n new_env python=3.11
-   conda activate new_env
+   conda create -n LibRecommenderTutorial python=3.11
+   conda activate LibRecommenderTutorial
    ```
 
 1. Install packages from `requirements.txt`:
@@ -33,7 +33,7 @@
 1. Install packages from `requirements-dev.txt`:
 
    ```
-   pip install requirements-dev.txt
+   pip install -r requirements-dev.txt
    ```
 
 1. Run jupyter notebook:
